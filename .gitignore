@@ -1,0 +1,4 @@
+front/src/node_modules
+front/dist/app.js
+front/dist/app.js.map
+.env

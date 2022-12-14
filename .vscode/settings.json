@@ -1,0 +1,20 @@
+{
+	"files.trimFinalNewlines": true,
+	"files.trimTrailingWhitespace": true,
+	"explorer.excludeGitIgnore": false,
+	"deno.enablePaths": [
+		"deps.ts",
+		"env.ts",
+		"index.ts",
+		"api",
+		"front/router.ts",
+		"repl.ts",
+		"wikiexport.ts"
+	],
+	"deno.lint": true,
+	"eslint.format.enable": true,
+	"eslint.packageManager": "yarn",
+	"eslint.workingDirectories": [
+		"/front/src/"
+	]
+}

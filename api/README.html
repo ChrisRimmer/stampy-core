@@ -1,0 +1,89 @@
+<h1>API architecture</h1>
+<p>The API codebase is split by data domain. Currently this means we have
+<code>questions</code>, <code>answers</code>, and a dumping ground for common tools <code>utils</code>.</p>
+<p>Each directory contains all of the code relating to that domain, so each
+directory contains all of the code, from front to back relating to a particular
+type of data.</p>
+<p>Within each domain's directory, there will typically be four key components:</p>
+<ul>
+<li>Some <code>procedures</code>, an ordered list of high-level operations to be performed in
+order to complete a request</li>
+<li>A <code>repository</code> containing all of the database logic required to fetch, update,
+delete items from the Redis DB</li>
+<li>Some <code>types</code> describing the constraints on what data structures for that
+domain should look like.</li>
+<li>Some <code>routes</code> which contain the URL paths through which different <code>procedures</code>
+are accessed. The relationships between a URL and its appropriate <code>procedure</code>s
+are defined in <code>/api/routes.ts</code>. See the note below.</li>
+</ul>
+<h1>The difference between a <code>url</code> and a <code>route</code>, and why</h1>
+<p>Procedures aren't specified on a per-URL basis because strictly, a URL specifies
+a <em>resource</em>, not an action to be done on the resource. Different procedures
+will be called when accessed by different HTTP methods. For example, the URL for
+a <code>phrasing</code> will likely end up with several <code>procedures</code> attached to it, one
+for each of the core actions of creating, reading, updating, and deleting.</p>
+<h1>Execution order</h1>
+<h2>Routing</h2>
+<p>The first thing that happens when a request comes into the API's router is it
+hits the <code>router</code> function in <code>/api/router.ts</code>. The router tries to find a
+<code>route</code> (as defined in <code>/api/routes.ts</code>) that matches the request, based on the
+request pathname and HTTP method. The <code>/api/routes.ts</code> file is in turn importing
+lists of routes from all of the data domains, gathering them up and acting as an
+aggregator.</p>
+<p>If a valid route is found, the router extracts data from the HTTP request and
+passes it through to the route's configured procedure. Whatever the procedure
+returns is serialised into JSON, and sent back to the client.</p>
+<p>The router also contains some basic error handling, so a procedure can simply
+'throw' some common error types, and the router will behave appropriately.</p>
+<h2>Procedures</h2>
+<p>These procedures will be found in a <code>procedures.ts</code> script, and are responsible
+for these tasks, typically in this order:</p>
+<ol>
+<li>Authenticating the user if necessary to ensure they are permitted to do
+whatever they're trying to do</li>
+<li>Any other business logic if necessary, perhaps requesting data from a
+<code>repository</code> or talking to a third party API</li>
+<li>Building a JSON-compatible (but not serialised!) return value for the router
+to send to the client</li>
+</ol>
+<h2>Repositories</h2>
+<p>Typically, most <code>procedure</code>s will be expected to do some kind of database
+operation, such as reading some data out or inserting new data. These operations
+are strictly confined to <code>repository</code> files, whose various exported functions
+must adhere to two conditions:</p>
+<ol>
+<li>They must demand as little data as possible, avoiding large class instances
+being passed around as parameters . This discourages a common antipattern in
+application development where code &quot;far away&quot; from the HTTP handler is
+expected to speak HTTP (yes, it happens!).</li>
+<li>They must return simple data wherever possible. This is for the same reason
+as above, as we don't want the database layer to be sending HTTP responses</li>
+<li>They must implement restrictions relating to the data structures themselves.
+While the type system and constraints we use are fairly good at preventing us
+from attempting to save invalid data to the database, it can only do so much.<ul>
+<li>As an example, the repository's <code>create</code> function must ensure that the data
+it's given is a valid entry (no missing required fields, no conflicting
+data if appropriate, etc) and must create all appropriate index entries for
+the new data.</li>
+<li>As a second example, a repository's <code>delete</code> handler must remove the item
+from any indexes etc</li>
+</ul>
+</li>
+<li>They must not implement any restrictions relating to anything except the data
+itself. While the database must ensure that whatever data it's given is
+technically valid, all responsibility for checks like &quot;is this client allowed
+to perform this operation?&quot; and such are strictly to be handled by the
+<code>procedure</code>. This prevents the <code>repository</code> from becoming cluttered with code
+relating to permissions checks etc, which is important as the database-
+specific code such as keeping indexes up to date and checking integrity are
+complex enough on their own without higher level business logic polluting
+them.</li>
+</ol>
+<p>These behavioural constraints on <code>repository</code>s help ensure that when one
+<code>repository</code> needs another <code>repository</code> to do some work, it can do so easily.
+For example, when the <code>phrasing repository</code> is asked to update a <code>phrasing</code>'s
+<code>answerID</code>, it must check that the answer exists, as a phrasing assigned to an
+answer that doesn't exist would be invalid data. To do this, it should be able
+to easily call some function in the <code>answer repository</code> with just a <code>answer</code> ID
+to check validity, before committing the new <code>answerID</code> to the <code>phrasing</code> in the
+database.</p>

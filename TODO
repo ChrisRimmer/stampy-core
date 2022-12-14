@@ -1,0 +1,11 @@
+TODO
+
+Make question source field on questions table point to question source ID, not name
+Make createQuestion repository handler manage adding source ID
+
+Import non-duplicate answers
+Find all duplicate questions + their eventual answers
+associate all questions to answers if answers exist
+
+extract all tags from questions, add to their relevant answers
+extract all tags from answers, add to answers

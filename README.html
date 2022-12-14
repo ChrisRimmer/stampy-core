@@ -1,0 +1,97 @@
+<h1>Overview</h1>
+<p>This repository is a single-binary program, combining both a static HTTP file
+server containing an administrative control panel currently called StampyAdmin,
+and a backend API process called StampyCore, which will be used to actually
+power StampyAdmin as well as all other Stampyverse services like Stampy the
+Discord bot, Stampy UI, and more.</p>
+<h1>Why are StampyCore and StampyAdmin in one repository?</h1>
+<p>Because it was easier for me at the time of starting the project, and it has a few fairly low-cost tradeoffs that buy us what I (Chris R) think are useful improvements:</p>
+<ul>
+<li>Tightly coupling the API provider and a reference example of an API consumer to each other ensures Stampy Admin always works as a good reference implementation of a Stampyverse API consumer</li>
+<li>Both applications being in one <em>directory</em> makes it trivial to share Typescript type definitions between them, which makes maintenance of StampyAdmin easier as the compiler will naturally throw errors whenever StampyCore's type definitions change</li>
+<li>Both applications being in one <em>binary</em> (of sorts) makes it easier for a developer to start working on Stampy with relatively little orchestration software on their computer (although very <em>waves hands</em> magic things like Remix Run also achieve the same effect)</li>
+</ul>
+<p>This comes with some downsides:</p>
+<ul>
+<li>The repository is a bit weird in places - the node modules necessary to power the compiler etc used to build the front end aren't at the top of the project as some developers are accustomed to and are instead buried down inside <code>/front/src/</code></li>
+<li>Using Deno as a runtime for the API and HTTP server means a developer needs <em>both</em> Node and Deno on their system, as Node is still sadly necessary for the front-end build tools. I feel this is justified by the extreme ease of deployment through Deno Deploy and by the general &quot;niceness&quot; of Deno as a runtime and toolkit</li>
+</ul>
+<h1>How does the file structure work?</h1>
+<p>The codebase is split into three main sections:</p>
+<ul>
+<li>Code relating strictly to the API</li>
+<li>Code relating strictly to the HTTP file server which is referred to as the
+front end in this project</li>
+<li>Code that is used by both the API and front end</li>
+</ul>
+<p>This naturally yields the directory structure we see here, with <code>api</code>, <code>front</code>,
+and <code>shared</code> directories.</p>
+<p>Both roles, the front end and the API, are served by a single Deno process which
+binds a single HTTP server on a single port. Requests relating to the API and
+the front are therefore all sent to a single top-level router module in
+<code>index.ts</code> in the project root, which dispatches requests to either the
+<code>backendRouter</code> or <code>frontendRouter</code> as appropriate depending on their URL.</p>
+<p>All requests whose pathnames start with <code>/api</code> (eg
+<code>https://core.stampy.ai/api/questions</code>) are routed to the API router, located in
+<code>/api/index.ts</code> and ALL other requests regardless of pathname are sent to the
+front end router in <code>/front/index.ts</code>, which will do further checks as detailed
+below.</p>
+<h1>How the front end works</h1>
+<p>The front end is a fairly conventional React app, although due to the fact it's
+served by the same web server process as the API, the code structure is a little
+counterintuitive in a couple of places around its edges. Inside the <code>front</code>
+directory you will find a <code>src</code> and <code>dist</code> directory. <code>dist</code> ships with the HTML
+file that a web browser will see to boot the application, as well as some static
+assets as part of the repository for the sake of toolchain simplicity. These
+files could be moved into the <code>src</code> directory and programmatically copied into
+<code>dist</code> as part of the front end compilation process, but this would yield almost
+no benefit in exchange for more complex tooling.</p>
+<p>As mentioned above, the front end has its own router, which determines what
+resources to send back to any given request from a HTTP client. Any request
+whose pathname starts with <code>/front</code> is routed to the filesystem, where the
+pathname is mapped to the <code>/front/dist</code> directory. So a request for
+<code>https://core.stampy.ai/front/styles.css</code> will receive <code>/front/dist/styles.css</code>
+as a response.</p>
+<p>All other requests (effectively, all requests that don't start with <code>/front</code>)
+receive the application bundle as a response, so a request to
+<code>https://core.stampy.ai/questions</code> or anywhere else will be given the front end
+HTML at <code>/front/dist/index.html</code>. The HTML template then loads the application
+JS + CSS, which boots and checks the URL the user has entered in their address
+bar, and then finally loads the relevant part of the UI.</p>
+<h1>How the API works</h1>
+<p>All requests whose pathnames start with <code>/api</code> are routed to the API's router in
+<code>/api/router.ts</code>. Due to the relatively complex (compared to the front end)
+nature of API routing, this router contains quite a bit of business logic, which
+is explained in the API's README.md at <code>/api/README.md</code>. As a general outline
+though, the API is a (mostly) REST-compliant interface implementing basic CRUD
+operations for all data types the system contains.</p>
+<p>Further information on the API architecture can be found in the API's own
+README.</p>
+<h1>Running dev instance:</h1>
+<ol>
+<li>Compile the front end JS code with <code>deno task build-frontend</code></li>
+<li>Launch the server<ul>
+<li>With debugger: <code>deno task debug</code></li>
+<li>Or with auto-rebuild of the backend on file changes: <code>deno task watch</code></li>
+</ul>
+</li>
+</ol>
+<p>Deno cannot run <em>both</em> a filesystem watcher and a debugger at the same time, as
+the file system watcher reboots the stack and would disconnect any attached
+debugger from the server.</p>
+<p>You can also run <code>deno task</code> to see a list of operations that we have define in
+the project configuration.</p>
+<h1>Building for deployment:</h1>
+<ul>
+<li>Run the pre-commit hook, typically by making a commit</li>
+</ul>
+<h1>Deploying:</h1>
+<h2>To production</h2>
+<ul>
+<li>Put a new commit in trunk</li>
+</ul>
+<h2>To preview</h2>
+<ul>
+<li>run <code>deployctl</code> locally - this will require some administrative setup, for
+which you're best to just talk to Chris</li>
+</ul>

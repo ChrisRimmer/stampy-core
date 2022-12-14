@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"noEmit": true,
+		"sourceMap": true,
+		"jsx": "react-jsx",
+		"skipLibCheck": true,
+		"target": "ESNext",
+		"moduleResolution": "node",
+		"strictNullChecks": true
+	},
+	"include": [
+		"./**/*.tsx",
+		"./**/*.ts",
+		"utils/data/validators"
+	]
+}

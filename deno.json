@@ -1,0 +1,17 @@
+{
+	"tasks": {
+		"build": "cd front/src && yarn && deno fmt && node build.cjs",
+		"debug": "deno run --allow-net --allow-read --allow-env --inspect-brk index.ts",
+		"watch": "deno run --allow-net --allow-read --allow-env --watch       index.ts",
+		"repl": "deno repl --eval-file='./repl.ts'",
+		"lint": "deno lint api && deno lint index.ts && deno lint front/router.ts"
+	},
+	"fmt": {
+		"options": {
+			"useTabs": true,
+			"proseWrap": "always",
+			"lineWidth": 80,
+			"singleQuote": false
+		}
+	}
+}

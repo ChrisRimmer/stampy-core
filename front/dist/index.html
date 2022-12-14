@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stampy Admin</title>
+  <meta name="viewport" content="width=320, initial-scale="2">
+  <link rel="stylesheet" href="/front/styles.css" />
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+  // loading the bundle and making sure we're not using cache
+  var rnd = (new Date()).getTime();
+  var b = document.createElement("script");
+  b.src = "/front/app.js?v=" + rnd;
+  b.type = "text/javascript";
+  document.body.appendChild(b);
+  </script>
+</body>
+</html>
